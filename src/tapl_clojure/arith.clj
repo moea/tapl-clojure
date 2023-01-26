@@ -45,7 +45,7 @@
 
 (defn eval1 [t]
   ;; This is the "small step" (i.e. one-step) evaluator implemented in the book,
-  ;; after a discusssion of operational semantics.  It's beyond useless.
+  ;; after a discusssion of operational semantics.
   (match t
     [:if :true  t1 _]    t1
     [:if :false _  t2]   t2
