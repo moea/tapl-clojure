@@ -3,7 +3,8 @@
             [clojure.walk
              :refer [postwalk]]
             [clojure.core.match
-             :refer [match]]))
+             :refer [match]])
+  (:refer-clojure :exclude [eval]))
 
 (def p
   (insta/parser
@@ -38,9 +39,9 @@
     :else       false))
 
 (defn nested-num? [x]
-  (if (keyword? x)
-    (num-val? x)
-    (recur (last x))))
+  (if (vector? x)
+    (recur (last x))
+    (num-val? x)))
 
 (defn eval1 [t]
   ;; This is the "small step" (i.e. one-step) evaluator implemented in the book,
@@ -51,8 +52,16 @@
     [:if t1     t2 t3]   [:if (eval1 t1) t2 t3]
     [:succ t1]           [:succ (eval1 t1)]
     [:pred :zero]        :zero
-    ([:pred :succ nv1]   :<< nested-num?) nv1
+    ([:pred :succ nv1]   :guard nested-num?) nv1
     [:pred t1]           [:pred (eval1 t1)]
     [:iszero :zero]      :true
-    ([:iszero :succ _]   :<< nested-num?) :false
-    [:iszero t1]         [:iszero (eval1 t1)]))
+    ([:iszero :succ _]   :guard nested-num?) :false
+    [:iszero t1]         [:iszero (eval1 t1)]
+    :else                (throw (ex-info "No match" {::term t}))))
+
+(defn eval [t]
+  (try
+    (let [t1 (eval1 t)]
+      (eval t1))
+    (catch clojure.lang.ExceptionInfo e
+      (-> e ex-data ::term))))
