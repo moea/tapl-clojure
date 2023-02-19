@@ -38,7 +38,7 @@
                        1)
                     (count binds)]))
   ([expr]
-   (de-brujin expr 0 (sorted-set))))
+   (de-brujin expr 0 [])))
 
 (defn- mint-name [vname bindings]
   (if (some #{vname} bindings)
@@ -46,14 +46,14 @@
     vname))
 
 (defn- un-brujin [expr]
-  (let [trec  (fn trec [node binds]
-                (match node
-                  [:term/abs vname body] (let [vname  (mint-name vname binds)
+  (let [trec (fn trec [node binds]
+               (match node
+                 [:term/abs vname body]  (let [vname  (mint-name vname binds)
                                                vname' (symbol (str vname "."))]
                                            (list 'L vname' (trec body (conj binds vname))))
-                  [:term/app l r]        (list (trec l binds) (trec r binds))
-                  [:term/var idx _]     (symbol (binds (- (count binds) idx 1)))
-                  :else                 node))]
+                 [:term/app l r]         (list (trec l binds) (trec r binds))
+                 [:term/var idx _]       (symbol (binds (- (count binds) idx 1)))
+                 :else                   node))]
     (walk/prewalk str (trec expr []))))
 
 (defn rewrite-vars [f c t]
