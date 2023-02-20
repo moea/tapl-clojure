@@ -94,12 +94,14 @@
     [:term/app  _ _]                                               (update t 1 (partial eval1 ctx))
     :else                                                          (throw (ex-info "No rule applies" {::term t}))))
 
+(defn- eval' [ctx t]
+  (recur ctx (eval1 ctx t)))
+
 (defn eval
   ([ctx t]
    (let [t (cond-> t (string? t) (-> parse de-brujin))
          res (try
-               (let [t' (eval1 ctx t)]
-                 (eval ctx t'))
+               (eval' ctx t)
                (catch clojure.lang.ExceptionInfo e
                  (->> e ex-data ::term)))]
      (un-brujin res)))
