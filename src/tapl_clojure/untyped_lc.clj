@@ -10,7 +10,7 @@
    "EXPR = abs | app | var
     var  = #'[\\w]+'
     abs  = <'(L'> var <'. '> EXPR <')'>
-    app  = (<'('> abs abs <')'>) | (var var)"
+    app  = (<'('> (abs | app) (abs | app) <')'>) | (var var)"
    {:auto-whitespace :standard}))
 
 (defn- parse [s]
@@ -90,7 +90,7 @@
 (defn eval1 [ctx t]
   (match t
     ([:term/app [:term/abs _ t12] v] :guard (comp is-val? last))   (term-sub-top v t12)
-    ([:term/app _ _]                 :guard (comp is-val? second)) (update t 2 (partial eval1 ctx))
+    ([:term/app _ _]                 :guard (comp is-val? second)) (update t 2 (partial eval1 ctx   ))
     [:term/app  _ _]                                               (update t 1 (partial eval1 ctx))
     :else                                                          (throw (ex-info "No rule applies" {::term t}))))
 
