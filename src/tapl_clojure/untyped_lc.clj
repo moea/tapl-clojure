@@ -45,24 +45,23 @@
     (recur (str vname "'") bindings)
     vname))
 
+(defn- un-brujin* [node binds]
+  (match node
+    [:term/abs vname body] (let [vname  (mint-name vname binds)
+                                 vname' (symbol (str vname "."))]
+                             (list 'L vname' (un-brujin* body (conj binds vname))))
+    [:term/app l r]        (list (un-brujin* l binds) (un-brujin* r binds))
+    [:term/var idx _]      (symbol (binds (- (count binds) idx 1)))
+    :else                  node))
+
 (defn- un-brujin [expr]
-  (let [trec (fn trec [node binds]
-               (match node
-                 [:term/abs vname body]  (let [vname  (mint-name vname binds)
-                                               vname' (symbol (str vname "."))]
-                                           (list 'L vname' (trec body (conj binds vname))))
-                 [:term/app l r]         (list (trec l binds) (trec r binds))
-                 [:term/var idx _]       (symbol (binds (- (count binds) idx 1)))
-                 :else                   node))]
-    (walk/prewalk str (trec expr []))))
+  (walk/prewalk str (un-brujin* expr [])))
 
 (defn- rewrite-vars [f c t]
-  (let [walk (fn walk [c t]
-               (match t
-                 [:term/var x  t']  (f c x t')
-                 [:term/abs x  t']  [:term/abs x (walk (inc c) t')]
-                 [:term/app t' t''] [:term/app (walk c t') (walk c t'')]))]
-    (walk c t)))
+  (match t
+    [:term/var x  t']  (f c x t')
+    [:term/abs x  t']  [:term/abs x (rewrite-vars f (inc c) t')]
+    [:term/app t' t''] [:term/app (rewrite-vars f c t') (rewrite-vars f c t'')]))
 
 (defn- term-shift-above [d c t]
   (rewrite-vars
